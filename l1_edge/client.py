@@ -1,5 +1,3 @@
-"""L1 edge client entry (registration + local training loop)."""
-
 from __future__ import annotations
 
 import argparse
