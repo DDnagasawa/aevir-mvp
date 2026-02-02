@@ -1,0 +1,244 @@
+openapi: 3.1.0
+info:
+  title: Aevir L1/L2/L3 API
+  version: 0.1.0
+  description: |
+    API definitions for L1 edge registration, task fetching, gradient upload,
+    and proof submission.
+servers:
+  - url: https://api.example.com
+security:
+  - ApiKeyAuth: []
+paths:
+  /v1/nodes/register:
+    post:
+      summary: Register L1 node
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NodeRegisterRequest'
+      responses:
+        '200':
+          description: Registration accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeRegisterResponse'
+  /v1/heartbeat:
+    post:
+      summary: Heartbeat from L1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+      responses:
+        '200':
+          description: Heartbeat received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeartbeatResponse'
+  /v1/tasks/next:
+    post:
+      summary: Fetch next training task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+      responses:
+        '200':
+          description: Task response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+  /v1/gradients/upload:
+    post:
+      summary: Upload compressed gradients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradientUploadRequest'
+      responses:
+        '200':
+          description: Upload result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradientUploadResponse'
+  /v1/proofs/submit:
+    post:
+      summary: Submit proof hash to L3 gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProofSubmitRequest'
+      responses:
+        '200':
+          description: Proof submission result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProofSubmitResponse'
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    HardwareProfile:
+      type: object
+      required: [tflops, vram_gb]
+      properties:
+        tflops:
+          type: number
+          minimum: 0
+        vram_gb:
+          type: number
+          minimum: 0
+        cuda_version:
+          type: string
+          nullable: true
+        rocm_version:
+          type: string
+          nullable: true
+    NodeRegisterRequest:
+      type: object
+      required: [ash_id, hardware, client_version, ts, sig]
+      properties:
+        ash_id:
+          type: string
+        hardware:
+          $ref: '#/components/schemas/HardwareProfile'
+        client_version:
+          type: string
+        ts:
+          type: integer
+        sig:
+          type: string
+    NodeRegisterResponse:
+      type: object
+      required: [status, node_id]
+      properties:
+        status:
+          type: string
+          enum: [accepted, rejected]
+        node_id:
+          type: string
+        error:
+          $ref: '#/components/schemas/ErrorResponse'
+    HeartbeatRequest:
+      type: object
+      required: [node_id, ts]
+      properties:
+        node_id:
+          type: string
+        ts:
+          type: integer
+        metrics:
+          type: object
+          additionalProperties: true
+    HeartbeatResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    TaskRequest:
+      type: object
+      required: [node_id, capabilities]
+      properties:
+        node_id:
+          type: string
+        capabilities:
+          $ref: '#/components/schemas/HardwareProfile'
+        last_epoch_id:
+          type: string
+          nullable: true
+    TaskResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ready, wait, no_task]
+        epoch_id:
+          type: string
+          nullable: true
+        model_hash:
+          type: string
+          nullable: true
+        model_params_base64:
+          type: string
+          nullable: true
+        error:
+          $ref: '#/components/schemas/ErrorResponse'
+    GradientUploadRequest:
+      type: object
+      required: [node_id, epoch_id, model_hash, gradient_blob_base64]
+      properties:
+        node_id:
+          type: string
+        epoch_id:
+          type: string
+        model_hash:
+          type: string
+        gradient_blob_base64:
+          type: string
+        metrics:
+          type: object
+          additionalProperties: true
+    GradientUploadResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [accepted, rejected]
+        error:
+          $ref: '#/components/schemas/ErrorResponse'
+    ProofSubmitRequest:
+      type: object
+      required: [node_id, epoch_id, proof_hash]
+      properties:
+        node_id:
+          type: string
+        epoch_id:
+          type: string
+        proof_hash:
+          type: string
+    ProofSubmitResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [queued, confirmed, rejected]
+        tx_hash:
+          type: string
+          nullable: true
+        error:
+          $ref: '#/components/schemas/ErrorResponse'

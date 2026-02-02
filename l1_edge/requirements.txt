@@ -1,0 +1,9 @@
+# Optional dependencies for real integrations
+flwr
+numpy
+web3
+psutil
+torch
+transformers
+peft
+
